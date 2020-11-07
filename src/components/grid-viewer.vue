@@ -3,6 +3,7 @@
 -->
 <template>
   <div class="grid-viewer">
+    <span v-if="images.length === 0"> EMPTY </span>
     <div
       class="content"
       :class="{
@@ -10,19 +11,18 @@
         'content-manga': mode === 'manga'
       }"
     >
-      <div v-if="images">
-        <span v-if="images.length === 0"> EMPTY </span>
-        <el-image
-          class="pic"
-          :class="'size-' + size"
-          lazy
-          fit="cover"
-          :src="getPreviewSrc(item.path)"
-          v-for="(item, $in) in images"
-          :key="item.name"
-          @click="showDetail($in)"
-        ></el-image>
-      </div>
+      <el-image
+        class="pic"
+        :class="'size-' + size"
+        lazy
+        fit="cover"
+        :src="getPreviewSrc(item.path)"
+        v-for="(item, $in) in images"
+        :key="item.name"
+        @click="showDetail($in)"
+      >
+        <span slot="placeholder">Loading...</span>
+      </el-image>
     </div>
     <image-viewer
       :z-index="99999"
@@ -108,10 +108,6 @@ export default class GridViewer extends Vue {
 }
 </script>
 <style lang="less" scoped>
-.grid-viewer {
-    width: 100%;
-    text-align: center;
-}
 .pic {
   display: inline-block;
   cursor: pointer;
@@ -119,8 +115,8 @@ export default class GridViewer extends Vue {
   margin-right: 8px;
   margin-bottom: 8px;
   border: 1px solid black;
+  background-color: #d2d2d2;
 }
-
 
 .content-picture {
   .size-100 {
@@ -145,7 +141,7 @@ export default class GridViewer extends Vue {
 }
 
 .content.content-manga {
-
+  text-align: center;
   .pic {
     margin: 20px auto;
     min-height: 200px;

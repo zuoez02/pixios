@@ -1,6 +1,6 @@
 {
   "name": "pixios",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -19,6 +19,8 @@
     "images": "^3.2.3",
     "less": "^3.12.2",
     "less-loader": "^7.0.2",
+    "pug": "^3.0.0",
+    "pug-loader": "^2.4.0",
     "vue": "^2.6.11",
     "vue-class-component": "^7.2.3",
     "vue-property-decorator": "^8.4.2",

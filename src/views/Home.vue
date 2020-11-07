@@ -1,91 +1,46 @@
 <template>
   <div class="home">
     <el-container>
-      <el-aside class="aside" width="400px">
-        <h2>Pixios</h2>
-        <div class="label">模式</div>
-        <el-radio-group v-model="mode">
-          <el-radio label="single">单独目录</el-radio>
-          <el-radio label="recent">最近天数</el-radio>
-        </el-radio-group>
-        <div class="label">展示方式</div>
-        <el-radio-group v-model="picMode">
-          <el-radio label="picture">普通</el-radio>
-          <el-radio label="manga">漫画</el-radio>
-        </el-radio-group>
-        <div class="label">大小</div>
-        <el-select v-model="size" size="mini">
-          <el-option label="小" value="100"></el-option>
-          <el-option label="中" value="300"></el-option>
-          <el-option label="大" value="500"></el-option>
-          <el-option label="巨大" value="700"></el-option>
-        </el-select>
-        <div class="label">排序</div>
-         <el-select v-model="sort" size="mini">
-          <el-option label="时间升序" value="timeAsc"></el-option>
-          <el-option label="时间降序" value="timeDesc"></el-option>
-          <el-option label="文件名升序" value="nameAsc"></el-option>
-          <el-option label="文件名降序" value="nameDesc"></el-option>
-        </el-select>
-        <div class="label">
-          根目录
-          <el-button @click="visibleStore = true" type="text" size="mini">选择</el-button>
+      <el-aside class="aside" :width="sidebarWidth">
+        <div>
+          <h2 style="float: left" v-show="!collapsed">
+            Pixios
+          </h2>
+          <span class="collapse-button" @click="collapsed = !collapsed">
+            <i class="el-icon-d-arrow-left" v-if="!collapsed"></i>
+            <i class="el-icon-d-arrow-right" v-else></i>
+          </span>
+        </div>
+        <div class="side-bar-content" v-show="!collapsed" style="clear: both;">
+          <side-bar-form v-model="form" @search="getProjects"></side-bar-form>
+          <div class="label">
+            <span>目录</span>
+            <span v-if="loadingAllFiles"><i class="el-icon-loading"></i></span>
+            <span v-else>(共{{ total }}张)</span>
           </div>
-        <el-input
-          size="small"
-          type="text"
-          v-model="folder"
-          @keyup.enter="getProjects"
-        >
-          <el-button @click="getProjects" slot="append">
-            <i class="el-icon-search"></i>
-          </el-button>
-        </el-input>
-        <div v-if="mode === 'recent'">
-          <div class="label">最近天数</div>
-          <el-input
-            size="small"
-            type="number"
-            v-model.number="days"
-            @keyup.enter.native="changeDays"
-          >
-            <el-button
-              slot="append"
-              icon="el-icon-search"
-              @click="changeDays"
-            ></el-button>
-          </el-input>
-        </div>
-
-        <div class="label">
-          <span>目录</span>
-          <span v-if="loadingAllFiles"><i class="el-icon-loading"></i></span>
-          <span v-else>(共{{ total }}张)</span>
-        </div>
-        <div class="folder" v-for="(folder, $index) in folders" :key="$index">
-          <div
-            class="folder-name"
-            :class="{ 'selected-folder-name': selectedFolder === folder }"
-            @click="selectedFolder = folder"
-            v-show="filesMap[folder] && filesMap[folder].length > 0"
-          >
-            <span>{{ folder }}</span>
-            <span v-if="filesMap[folder] && filesMap[folder].length"
-              >({{ filesMap[folder].length }})</span
+          <div class="folder" v-for="(folder, $index) in folders" :key="$index">
+            <div
+              class="folder-name"
+              :class="{ 'selected-folder-name': selectedFolder === folder }"
+              @click="selectedFolder = folder"
+              v-show="filesMap[folder] && filesMap[folder].length > 0"
             >
+              <span>{{ folder }}</span>
+              <span v-if="filesMap[folder] && filesMap[folder].length"
+                >({{ filesMap[folder].length }})</span
+              >
+            </div>
           </div>
         </div>
       </el-aside>
       <el-container id="container" class="container">
-        <grid-viewer :images="selectedImages" :size="size" :mode="picMode"></grid-viewer>
+        <grid-viewer
+          :images="sortedFolders"
+          :size="form.size"
+          :mode="form.picMode"
+        ></grid-viewer>
       </el-container>
     </el-container>
-    
-    <store
-      :visible="visibleStore"
-      @apply="applyFolder"
-      @close="visibleStore = false"
-    ></store>
   </div>
 </template>
 
@@ -95,26 +50,15 @@ import HelloWorld from "@/components/HelloWorld.vue"; // @ is an alias to /src
 import { Stats } from "fs";
 import { Watch } from "vue-property-decorator";
 import { ElImage } from "element-ui/types/image";
-import Store from "./store.vue";
-import GridViewer from '@/components/grid-viewer.vue';
-
-const electron = window.require("electron");
-const { remote } = electron;
-const fs = remote.require("fs");
-const path = remote.require("path");
-
-interface ImageItem {
-  path: string;
-  cTime: number;
-  name: string;
-  src: string | null;
-  loading: boolean;
-}
+import GridViewer from "@/components/grid-viewer.vue";
+import SideBarForm from "@/components/side-bar-form.vue";
+import { AsideForm, ImageItem } from "@/type";
+import { FsService } from "@/services/fs-service";
 
 @Component({
   components: {
-    Store,
     GridViewer,
+    SideBarForm
   }
 })
 export default class Home extends Vue {
@@ -122,27 +66,28 @@ export default class Home extends Vue {
     image: any;
   };
 
-  public visibleStore = false;
-
-  public inputFiles = "";
-
-  public mode: "single" | "recent" = "single";
-
-  public picMode: 'picture' | 'manga' = 'picture';
-
-  public folder = "";
+  public form: AsideForm = {
+    mode: "single",
+    picMode: "picture",
+    size: "300",
+    sort: "nameDesc",
+    folder: "",
+    days: 1
+  };
 
   public folders: string[] = [];
 
   public filesMap: { [key: string]: ImageItem[] } = {};
 
+  public fsService = new FsService();
+
   public selectedFolder = "";
 
-  public days = 7;
+  public collapsed = false;
 
-  public size = "300";
-
-  public sort = 'nameDesc';
+  get sidebarWidth() {
+    return this.collapsed ? "40px" : "400px";
+  }
 
   get selectedImages() {
     return this.filesMap[this.selectedFolder] || [];
@@ -150,14 +95,19 @@ export default class Home extends Vue {
 
   get sortedFolders() {
     return this.selectedImages.sort((a, b) => {
-      switch (this.sort) {
-        case 'timeAsc': return a.cTime - b.cTime;
-        case 'timeDesc': return b.cTime - a.cTime;
-        case 'nameAsc': return a.name.localeCompare(b.name);
-        case 'nameDesc': return b.name.localeCompare(a.name);
-        default: return 0;
+      switch (this.form.sort) {
+        case "timeAsc":
+          return a.cTime - b.cTime;
+        case "timeDesc":
+          return b.cTime - a.cTime;
+        case "nameAsc":
+          return a.name.localeCompare(b.name);
+        case "nameDesc":
+          return b.name.localeCompare(a.name);
+        default:
+          return 0;
       }
-    })
+    });
   }
 
   get total() {
@@ -172,7 +122,6 @@ export default class Home extends Vue {
   get loadingAllFiles() {
     return Object.keys(this.filesMap).length !== this.folders.length;
   }
- 
 
   public scrollTop() {
     const c = document.querySelector("#container");
@@ -190,131 +139,68 @@ export default class Home extends Vue {
   }
 
   public changeDays() {
-    if (this.days >= 0 && this.mode === "recent") {
+    if (this.form.days >= 0 && this.form.mode === "recent") {
       this.getProjects();
     }
   }
 
   @Watch("mode")
   public onModeChange() {
-    if (this.mode === "single") {
+    if (this.form.mode === "single") {
       this.getProjects();
     }
   }
 
   public mounted() {
-    if (this.folder) {
+    if (this.form.folder) {
       this.getProjects();
     }
   }
 
-  public getProjects() {
-    if (!this.folder) {
+  public async getProjects() {
+    if (!this.form.folder) {
       return;
     }
     this.filesMap = {};
     this.selectedFolder = "";
     this.folders = [];
-    const target = path.normalize(this.folder);
-    fs.readdir(target, async (v: Error | null, list: string[]) => {
-      const folders = list
-        .filter(v => !v.startsWith("."))
-        .sort((a, b) => a.localeCompare(b));
-      for (const f of folders) {
-        const stat = await this.getStat(path.resolve(this.folder, f));
-        if (stat.isDirectory()) {
-          this.folders.push(f);
-        }
-      }
-      if (this.mode === "single" && !this.selectedFolder) {
-        this.selectedFolder = folders[0] || "";
-      }
-      this.folders.forEach(f => this.getFileList(f));
-    });
+    const target = this.fsService.normalize(this.form.folder) as string;
+    this.folders = await this.fsService.getProjects(target);
+    if (this.form.mode === "single" && !this.selectedFolder) {
+      this.selectedFolder = this.folders[0] || "";
+    }
+    this.folders.forEach(f => this.getFileList(f));
   }
 
-  public getFileList(f: string) {
-    fs.readdir(
-      path.resolve(this.folder, f),
-      async (err: Error | null, files: string[]) => {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        const recentFiles: Array<ImageItem> = [];
-        const today = new Date().getTime();
-        const minus = this.days * 24 * 60 * 60 * 1000;
-        const types = ["png", "jpg"];
-        for (const v of files) {
-          if (types.every(t => !v.endsWith(t))) {
-            continue;
-          }
-          const fp = path.resolve(this.folder, f, v);
-          try {
-            const stat = await this.getStat(fp);
-            const time = stat.ctime;
-            if (
-              stat.isFile() &&
-              (this.mode === "single" || stat.ctime.getTime() > today - minus)
-            ) {
-              recentFiles.push({
-                path: fp,
-                name: v,
-                cTime: time.getTime(),
-                loading: true,
-                src: null
-              });
-            }
-          } catch (e) {
-            console.error(e);
-          }
-        }
-        if (this.mode === "recent") {
-          if (!this.selectedFolder && recentFiles.length > 0) {
-            this.selectedFolder = f;
-          }
-        }
-        this.$set(this.filesMap, f, recentFiles);
+  public async getFileList(f: string) {
+    const file = this.fsService.resolve(this.form.folder, f);
+    const days = this.form.mode === "recent" ? this.form.days : 0;
+    const recentFiles = await this.fsService.getFileList(file, days);
+    if (this.form.mode === "recent") {
+      if (!this.selectedFolder && recentFiles.length > 0) {
+        this.selectedFolder = f;
       }
-    );
+    }
+    this.$set(this.filesMap, f, recentFiles);
   }
 
-  public async getStat(filePath: string): Promise<Stats> {
-    return new Promise((resolve, reject) => {
-      fs.stat(filePath, (err: Error | null, stat: Stats) => {
-        if (err !== null) {
-          reject(err);
-          return;
-        }
-        resolve(stat);
-      });
-    });
-  }
-
-  
-
-  public onChooseFolder(event: any) {
+  public async onChooseFolder(event: any) {
     const files = event.target.files as FileList;
     if (files.length > 0) {
       const first = files.item(0);
       const p = first?.path;
       if (p) {
-        const stat = fs.statSync(p);
+        const stat = await this.fsService.getStat(p);
         if (stat.isDirectory()) {
-          this.folder = path.resolve(p, "..");
+          this.form.folder = this.fsService.resolve(p, "..");
         } else {
-          this.folder = path.dirname(p);
+          this.form.folder = this.fsService.dirname(p);
         }
         this.getProjects();
         return;
       }
     }
-    this.folder = "";
-  }
-
-  public applyFolder(folder: string) {
-    this.folder = folder;
-    this.getProjects();
+    this.form.folder = "";
   }
 }
 </script>
@@ -371,5 +257,13 @@ export default class Home extends Vue {
   color: white;
   border-radius: 4px;
   font-size: 14px;
+}
+
+.collapse-button {
+  float: right;
+  font-size: 24px;
+  left: 12px;
+  position: relative;
+  cursor: pointer;
 }
 </style>
