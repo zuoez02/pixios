@@ -3,7 +3,6 @@
 -->
 <template>
   <div class="grid-viewer">
-    <span v-if="images.length === 0"> EMPTY </span>
     <div
       class="content"
       :class="{
@@ -21,7 +20,6 @@
         :key="item.name"
         @click="showDetail($in)"
       >
-        <span slot="placeholder">Loading...</span>
       </el-image>
     </div>
     <image-viewer
@@ -115,7 +113,6 @@ export default class GridViewer extends Vue {
   margin-right: 8px;
   margin-bottom: 8px;
   border: 1px solid black;
-  background-color: #d2d2d2;
 }
 
 .content-picture {

@@ -48,7 +48,7 @@
       <el-input
         size="small"
         type="number"
-        v-model.number="days"
+        v-model.number="form.days"
         @keyup.enter.native="search"
       >
         <el-button
@@ -82,6 +82,10 @@ export default class SideBarForm extends Vue {
   public form!: AsideForm;
 
   public visibleStore = false;
+
+  public search() {
+    this.getProjects();
+  }
 
   public getProjects() {
     this.$emit("search");

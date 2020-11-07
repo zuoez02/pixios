@@ -46,10 +46,7 @@
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import HelloWorld from "@/components/HelloWorld.vue"; // @ is an alias to /src
-import { Stats } from "fs";
 import { Watch } from "vue-property-decorator";
-import { ElImage } from "element-ui/types/image";
 import GridViewer from "@/components/grid-viewer.vue";
 import SideBarForm from "@/components/side-bar-form.vue";
 import { AsideForm, ImageItem } from "@/type";
@@ -62,17 +59,13 @@ import { FsService } from "@/services/fs-service";
   }
 })
 export default class Home extends Vue {
-  public $refs!: {
-    image: any;
-  };
-
   public form: AsideForm = {
     mode: "single",
     picMode: "picture",
     size: "300",
     sort: "nameDesc",
     folder: "",
-    days: 1
+    days: 0
   };
 
   public folders: string[] = [];
@@ -184,8 +177,8 @@ export default class Home extends Vue {
     this.$set(this.filesMap, f, recentFiles);
   }
 
-  public async onChooseFolder(event: any) {
-    const files = event.target.files as FileList;
+  public async onChooseFolder(event: Event) {
+    const files = (event.target as any).files as FileList;
     if (files.length > 0) {
       const first = files.item(0);
       const p = first?.path;
@@ -232,6 +225,10 @@ export default class Home extends Vue {
   height: 100vh;
   overflow-y: scroll;
   padding: 8px 20px;
+  width: 400px;
+  // z-index: 2;
+  border-color: transparent;
+  box-shadow: 1px 0px 12px 5px #191919;
 }
 
 .aside::-webkit-scrollbar {
