@@ -1,4 +1,4 @@
-# lsp
+# Pixios
 
 ## Project setup
 ```

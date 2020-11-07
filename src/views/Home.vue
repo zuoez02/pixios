@@ -2,7 +2,7 @@
   <div class="home">
     <el-container>
       <el-aside class="aside" width="400px">
-        <h2>LSP</h2>
+        <h2>Pixios</h2>
         <div class="label">模式</div>
         <el-radio-group v-model="mode">
           <el-radio label="single">单独目录</el-radio>
