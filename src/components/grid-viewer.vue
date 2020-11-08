@@ -106,6 +106,9 @@ export default class GridViewer extends Vue {
 }
 </script>
 <style lang="less" scoped>
+.grid-viewer {
+  width: 100%;
+}
 .pic {
   display: inline-block;
   cursor: pointer;
