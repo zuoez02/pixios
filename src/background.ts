@@ -1,7 +1,7 @@
 "use strict";
-import path from 'path';
-import images from 'images';
-import { app, protocol, BrowserWindow } from "electron";
+import path from "path";
+import images from "images";
+import { app, session, protocol, BrowserWindow } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 const isDevelopment = process.env.NODE_ENV !== "production";
@@ -10,8 +10,6 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 protocol.registerSchemesAsPrivileged([
   { scheme: "app", privileges: { secure: true, standard: true } }
 ]);
-
-
 
 async function createWindow() {
   // Create the browser window.
@@ -22,7 +20,7 @@ async function createWindow() {
       webSecurity: false,
       // Use pluginOptions.nodeIntegration, leave this alone
       // See nklayman.github.io/vue-cli-plugin-electron-builder/guide/security.html#node-integration for more info
-      nodeIntegration: true,
+      nodeIntegration: true
     }
   });
 
@@ -30,53 +28,56 @@ async function createWindow() {
     win.removeMenu();
   }
 
+  protocol.interceptFileProtocol(
+    "file",
+    function(req, callback) {
+      const url = req.url.substr(7);
+      let p: string;
+      let isPreview = false;
+      if (url.startsWith("/")) {
+        p = decodeURI("\\" + path.normalize(url));
+      } else {
+        p = url;
+      }
+      if (p.endsWith("_preview")) {
+        isPreview = true;
+        p = p.substr(0, p.length - 8);
+      }
+      callback(p);
+    },
+    function(error) {
+      if (error) console.error("Failed to register protocol");
+    }
+  );
 
-  protocol.interceptFileProtocol('file', function(req, callback) {
-    const url = req.url.substr(7);
-    let p: string;
-    let isPreview = false;
-    if (url.startsWith("/")) {
-      p = decodeURI('\\' + path.normalize(url));
-    } else {
-      p = url;
+  protocol.interceptBufferProtocol(
+    "preview",
+    function(req, callback) {
+      const url = req.url.substr(10);
+      let p: string;
+      let isPreview = false;
+      if (url.startsWith("/")) {
+        p = decodeURI("\\" + path.normalize(url));
+      } else {
+        p = url;
+      }
+      if (p.endsWith("_preview")) {
+        isPreview = true;
+        p = p.substr(0, p.length - 8);
+      }
+      const type = /\.(png|jpg)$/.exec(p);
+      const v = (type && type[1]) || "png";
+      const img = images.loadFromFile(p);
+      if (isPreview) {
+        img.resize(500);
+      }
+      const buf = img.encode(v as images.FILE_TYPE);
+      callback(buf);
+    },
+    function(error) {
+      if (error) console.error("Failed to register protocol");
     }
-    if (p.endsWith('_preview')) {
-      isPreview = true;
-      p = p.substr(0, p.length - 8);
-    }
-    callback(p);
-
-  },function (error) {
-    if (error)
-      console.error('Failed to register protocol')
-  })
-
-  protocol.interceptBufferProtocol('preview', function(req, callback) {
-    const url = req.url.substr(10);
-    let p: string;
-    let isPreview = false;
-    if (url.startsWith("/")) {
-      p = decodeURI('\\' + path.normalize(url));
-    } else {
-      p = url;
-    }
-    if (p.endsWith('_preview')) {
-      isPreview = true;
-      p = p.substr(0, p.length - 8);
-    }
-    const type = /\.(png|jpg)$/.exec(p);
-    const v = type && type[1] || 'png';
-    const img = images.loadFromFile(p);
-    if (isPreview) {
-      img.resize(500);
-    }
-    const buf = img.encode(v as images.FILE_TYPE);
-    callback(buf);
-
-  },function (error) {
-    if (error)
-      console.error('Failed to register protocol')
-  })
+  );
 
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
@@ -111,7 +112,7 @@ app.on("ready", async () => {
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     try {
-      // await installExtension(VUEJS_DEVTOOLS);
+      await installExtension(VUEJS_DEVTOOLS);
     } catch (e) {
       console.error("Vue Devtools failed to install:", e.toString());
     }
