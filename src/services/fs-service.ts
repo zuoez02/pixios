@@ -1,4 +1,4 @@
-import { ImageItem } from '@/type';
+import { ImageItem } from "@/type";
 import { Stats } from "fs";
 
 const electron = window.require("electron");
@@ -31,7 +31,8 @@ export class FsService {
 
   public async getFileList(file: string, days = 0): Promise<ImageItem[]> {
     return new Promise((resolve, reject) => {
-      fs.readdir(path.resolve(file),
+      fs.readdir(
+        path.resolve(file),
         async (err: Error | null, files: string[]) => {
           if (err) {
             reject(err);
@@ -68,8 +69,8 @@ export class FsService {
           }
           resolve(recentFiles);
         }
-      )
-    })
+      );
+    });
   }
 
   public async getStat(filePath: string): Promise<Stats> {
