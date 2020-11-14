@@ -1,3 +1,4 @@
+import store from "@/store";
 import { ImageItem } from "@/type";
 import { Stats } from "fs";
 
@@ -52,7 +53,8 @@ export class FsService {
               const time = stat.ctime;
               if (
                 stat.isFile() &&
-                (!days || (days > 0 && stat.ctime.getTime() > today - minus))
+                (store.get("mode") !== "recent" ||
+                  stat.ctime.getTime() > today - minus)
               ) {
                 recentFiles.push({
                   path: fp,
