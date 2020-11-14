@@ -28,11 +28,7 @@
 import Vue from "vue";
 import Component from "vue-class-component";
 import { Prop } from "vue-property-decorator";
-
-const electron = window.require("electron");
-const { remote } = electron;
-const EStore = remote.require("electron-store");
-const store = new EStore();
+import store from "@/store";
 
 @Component
 export default class Store extends Vue {
@@ -42,7 +38,7 @@ export default class Store extends Vue {
   public items: string[] = [];
 
   public created() {
-    this.items = store.get("folders") || [];
+    this.items = store.get("folders");
   }
 
   public apply(item: string) {

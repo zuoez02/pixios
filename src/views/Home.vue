@@ -12,13 +12,18 @@
           </span>
         </div>
         <div class="side-bar-content" v-show="!collapsed" style="clear: both;">
-          <side-bar-form v-model="form" @search="getProjects"></side-bar-form>
-          <div class="label">
+          <side-bar-form v-model="form" @search="search"></side-bar-form>
+          <div class="label" v-show="form.mode !== 'single'">
             <span>目录</span>
             <span v-if="loadingAllFiles"><i class="el-icon-loading"></i></span>
             <span v-else>(共{{ total }}张)</span>
           </div>
-          <div class="folder" v-for="(folder, $index) in folders" :key="$index">
+          <div
+            class="folder"
+            v-show="form.mode !== 'single'"
+            v-for="(folder, $index) in folders"
+            :key="$index"
+          >
             <div
               class="folder-name"
               :class="{ 'selected-folder-name': selectedFolder === folder }"
@@ -38,6 +43,7 @@
           :images="sortedFolders"
           :size="form.size"
           :mode="form.picMode"
+          @drop-path="onDropPath"
         ></grid-viewer>
       </el-container>
     </el-container>
@@ -51,6 +57,7 @@ import GridViewer from "@/components/grid-viewer.vue";
 import SideBarForm from "@/components/side-bar-form.vue";
 import { AsideForm, ImageItem } from "@/type";
 import { FsService } from "@/services/fs-service";
+import store from "@/store";
 
 @Component({
   components: {
@@ -60,7 +67,7 @@ import { FsService } from "@/services/fs-service";
 })
 export default class Home extends Vue {
   public form: AsideForm = {
-    mode: "single",
+    mode: "folders",
     picMode: "picture",
     size: "300",
     sort: "nameDesc",
@@ -116,6 +123,34 @@ export default class Home extends Vue {
     return Object.keys(this.filesMap).length !== this.folders.length;
   }
 
+  @Watch("form", { deep: true })
+  public onFormChange(val: AsideForm) {
+    const { mode, picMode, size, sort, days, folder } = val;
+    store.set("mode", mode);
+    store.set("picMode", picMode);
+    store.set("size", size);
+    store.set("sort", sort);
+    store.set("days", days);
+    store.set("folder", folder);
+  }
+
+  public created() {
+    const mode = store.get("mode");
+    const picMode = store.get("picMode");
+    const size = store.get("size");
+    const sort = store.get("sort");
+    const days = store.get("days");
+    const folder = store.get("folder");
+    this.form = {
+      mode,
+      picMode,
+      folder,
+      size,
+      sort,
+      days
+    } as AsideForm;
+  }
+
   public scrollTop() {
     const c = document.querySelector("#container");
     if (c) {
@@ -133,40 +168,50 @@ export default class Home extends Vue {
 
   public changeDays() {
     if (this.form.days >= 0 && this.form.mode === "recent") {
-      this.getProjects();
+      this.search();
     }
   }
 
   @Watch("mode")
-  public onModeChange() {
-    if (this.form.mode === "single") {
+  public async search() {
+    this.clear();
+    if (this.form.mode === "folders" || this.form.mode === "recent") {
       this.getProjects();
+    } else if (this.form.mode === "single") {
+      this.selectedFolder = "_";
+      this.filesMap = {};
+      await this.getFileList(this.selectedFolder);
     }
   }
 
   public mounted() {
-    if (this.form.folder) {
-      this.getProjects();
+    console.log(this.form.folder);
+    if (!this.form.folder) {
+      return;
     }
+    this.search();
   }
 
   public async getProjects() {
     if (!this.form.folder) {
       return;
     }
-    this.filesMap = {};
-    this.selectedFolder = "";
-    this.folders = [];
+    this.clear();
     const target = this.fsService.normalize(this.form.folder) as string;
     this.folders = await this.fsService.getProjects(target);
-    if (this.form.mode === "single" && !this.selectedFolder) {
+    if (this.form.mode === "folders" && !this.selectedFolder) {
       this.selectedFolder = this.folders[0] || "";
     }
     this.folders.forEach(f => this.getFileList(f));
   }
 
-  public async getFileList(f: string) {
-    const file = this.fsService.resolve(this.form.folder, f);
+  public async getFileList(f = "") {
+    let file: string;
+    if (!f || f === "_") {
+      file = this.form.folder;
+    } else {
+      file = this.fsService.resolve(this.form.folder, f);
+    }
     const days = this.form.mode === "recent" ? this.form.days : 0;
     const recentFiles = await this.fsService.getFileList(file, days);
     if (this.form.mode === "recent") {
@@ -175,6 +220,7 @@ export default class Home extends Vue {
       }
     }
     this.$set(this.filesMap, f, recentFiles);
+    return recentFiles;
   }
 
   public async onChooseFolder(event: Event) {
@@ -194,6 +240,17 @@ export default class Home extends Vue {
       }
     }
     this.form.folder = "";
+  }
+
+  public onDropPath(path: string) {
+    this.form.folder = path;
+    this.search();
+  }
+
+  public clear() {
+    this.filesMap = {};
+    this.selectedFolder = "";
+    this.folders = [];
   }
 }
 </script>

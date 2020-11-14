@@ -6,6 +6,7 @@
     <div class="label">模式</div>
     <el-radio-group v-model="form.mode">
       <el-radio label="single">单独目录</el-radio>
+      <el-radio label="folders">嵌套目录</el-radio>
       <el-radio label="recent">最近天数</el-radio>
     </el-radio-group>
     <div class="label">展示方式</div>
@@ -28,7 +29,7 @@
       <el-option label="文件名降序" value="nameDesc"></el-option>
     </el-select>
     <div class="label">
-      根目录
+      目录
       <el-button @click="visibleStore = true" type="text" size="mini"
         >选择</el-button
       >
