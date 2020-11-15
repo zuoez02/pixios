@@ -1,9 +1,18 @@
 <template>
   <div id="app">
-    <router-view />
+    <Home />
   </div>
 </template>
+<script lang="ts">
+import Vue from "vue";
+import Home from "@/views/Home.vue";
 
+export default Vue.extend({
+  components: {
+    Home
+  }
+});
+</script>
 <style>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;

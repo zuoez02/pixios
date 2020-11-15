@@ -1,7 +1,11 @@
 <template>
   <div class="home">
     <el-container>
-      <el-aside class="aside" :width="sidebarWidth">
+      <el-aside
+        class="aside"
+        :class="`mode-${form.mode}`"
+        :width="sidebarWidth"
+      >
         <div>
           <h2 style="float: left" v-show="!collapsed">
             Pixios
@@ -277,7 +281,6 @@ export default class Home extends Vue {
 }
 
 .aside {
-  background-color: #3700b3;
   color: white;
   height: 100vh;
   overflow-y: scroll;
@@ -286,6 +289,18 @@ export default class Home extends Vue {
   // z-index: 2;
   border-color: transparent;
   box-shadow: 1px 0px 12px 5px #191919;
+
+  &.mode-single {
+    background-color: #175052;
+  }
+
+  &.mode-folders {
+    background-color: #133d52;
+  }
+
+  &.mode-recent {
+    background-color: #4c3c6f;
+  }
 }
 
 .aside::-webkit-scrollbar {
