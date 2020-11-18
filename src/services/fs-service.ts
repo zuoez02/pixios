@@ -1,6 +1,7 @@
 import store from "@/store";
 import { ImageItem } from "@/type";
 import { Stats } from "fs";
+import dayjs from "dayjs";
 
 const electron = window.require("electron");
 const { remote } = electron;
@@ -40,8 +41,6 @@ export class FsService {
             return;
           }
           const recentFiles: Array<ImageItem> = [];
-          const today = new Date().getTime();
-          const minus = days * 24 * 60 * 60 * 1000;
           const types = ["png", "jpg"];
           for (const v of files) {
             if (types.every(t => !v.endsWith(t))) {
@@ -54,7 +53,10 @@ export class FsService {
               if (
                 stat.isFile() &&
                 (store.get("mode") !== "recent" ||
-                  stat.ctime.getTime() > today - minus)
+                  dayjs(stat.ctime) >
+                    dayjs()
+                      .startOf("day")
+                      .subtract(Math.max(0, days - 1), "day"))
               ) {
                 recentFiles.push({
                   path: fp,

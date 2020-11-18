@@ -188,14 +188,6 @@ export default class Home extends Vue {
     }
   }
 
-  public mounted() {
-    console.log(this.form.folder);
-    if (!this.form.folder) {
-      return;
-    }
-    this.search();
-  }
-
   public async getProjects() {
     if (!this.form.folder) {
       return;
