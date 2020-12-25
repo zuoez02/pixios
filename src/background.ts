@@ -65,6 +65,7 @@ async function createWindow() {
         isPreview = true;
         p = p.substr(0, p.length - 8);
       }
+      p = decodeURIComponent(p);
       const type = /\.(png|jpg)$/.exec(p);
       const v = (type && type[1]) || "png";
       const img = images.loadFromFile(p);

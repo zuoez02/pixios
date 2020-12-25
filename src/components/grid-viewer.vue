@@ -159,9 +159,7 @@ export default class GridViewer extends Vue {
   public close(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    console.log(e.target);
     const from = e.target as HTMLElement | null;
-    console.log(from, from?.tagName);
     if (from && from.tagName.toLowerCase() === "img") {
       return;
     }
